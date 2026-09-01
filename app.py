@@ -172,33 +172,15 @@ elif st.session_state.page == 'shopping':
         img_url = row['이미지 url']
         
         with cols[idx % 3]:
+            # HTML 내부의 들여쓰기 공백으로 인한 마크다운 오작동 방지
             st.markdown(
-                f"""
-                <div style="
-                    border: 1px solid #E5E7EB;
-                    border-radius: 12px;
-                    padding: 12px;
-                    background-color: #FFFFFF;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    height: 250px;
-                    justify-content: space-between;
-                    margin-bottom: 10px;
-                ">
-                    <img src="{img_url}" style="
-                        width: 120px;
-                        height: 120px;
-                        object-fit: cover;
-                        border-radius: 8px;
-                    " loading="lazy" />
-                    <div style="text-align: center; margin-top: 8px;">
-                        <div style="font-weight: bold; font-size: 16px; color: #1F2937;">{name}</div>
-                        <div style="color: #4B5563; font-size: 14px; margin-top: 2px;">{price:,}원</div>
-                    </div>
-                </div>
-                """,
+                f'<div style="border: 1px solid #E5E7EB; border-radius: 12px; padding: 12px; background-color: #FFFFFF; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center; height: 250px; justify-content: space-between; margin-bottom: 10px;">'
+                f'<img src="{img_url}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px;" loading="lazy" />'
+                f'<div style="text-align: center; margin-top: 8px;">'
+                f'<div style="font-weight: bold; font-size: 16px; color: #1F2937;">{name}</div>'
+                f'<div style="color: #4B5563; font-size: 14px; margin-top: 2px;">{price:,}원</div>'
+                f'</div>'
+                f'</div>',
                 unsafe_allow_html=True
             )
             
@@ -211,7 +193,7 @@ elif st.session_state.page == 'shopping':
                 label_visibility="collapsed"
             )
             
-            if st.button(f"장바구니 업데이트", key=f"add_{idx}", use_container_width=True):
+            if st.button("장바구니 업데이트", key=f"add_{idx}", use_container_width=True):
                 if curr_qty > 0:
                     st.session_state.cart[name] = {"price": price, "qty": curr_qty, "image": img_url}
                     st.toast(f"'{name}' {curr_qty}개가 장바구니에 담겼습니다! 🛒")
@@ -229,26 +211,24 @@ elif st.session_state.page == 'shopping':
     if not st.session_state.cart:
         st.write("아직 장바구니에 담은 물건이 없습니다.")
     else:
-        cart_html = """
-        <div style="border: 1px solid #E5E7EB; border-radius: 8px; padding: 10px; background-color: #FAFAFA; margin-bottom: 15px;">
-        """
+        # 공백 및 줄바꿈 문제 해결: 문자열을 결합하여 한 줄로 렌더링
+        cart_html = '<div style="border: 1px solid #E5E7EB; border-radius: 8px; padding: 10px; background-color: #FAFAFA; margin-bottom: 15px;">'
+        
         for name, item in st.session_state.cart.items():
             subtotal = item['price'] * item['qty']
-            cart_html += f"""
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #EEEEEE;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <img src="{item['image']}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px;" />
-                    <div>
-                        <span style="font-weight: bold; font-size: 15px; color: #333;">{name}</span><br/>
-                        <span style="font-size: 13px; color: #666;">{item['price']:,}원 × {item['qty']}개</span>
-                    </div>
-                </div>
-                <div style="font-weight: bold; font-size: 15px; color: #1E3A8A;">
-                    {subtotal:,}원
-                </div>
-            </div>
-            """
-        cart_html += "</div>"
+            cart_html += (
+                f'<div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #EEEEEE;">'
+                f'<div style="display: flex; align-items: center; gap: 12px;">'
+                f'<img src="{item["image"]}" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px;" />'
+                f'<div>'
+                f'<span style="font-weight: bold; font-size: 15px; color: #333;">{name}</span><br/>'
+                f'<span style="font-size: 13px; color: #666;">{item["price"]:,}원 × {item["qty"]}개</span>'
+                f'</div></div>'
+                f'<div style="font-weight: bold; font-size: 15px; color: #1E3A8A;">{subtotal:,}원</div>'
+                f'</div>'
+            )
+            
+        cart_html += '</div>'
         st.markdown(cart_html, unsafe_allow_html=True)
 
     col_a, col_b, col_c = st.columns(3)
@@ -288,31 +268,31 @@ elif st.session_state.page == 'result':
     # 2. 구매품목 목록 표시
     st.subheader("📦 구매품목")
     
-    list_html = """
-    <table style="width:100%; border-collapse: collapse; margin-bottom: 20px; font-size: 15px;">
-        <thead>
-            <tr style="border-bottom: 2px solid #333; text-align: left; background-color: #F3F4F6;">
-                <th style="padding: 10px; width: 80px;">이미지</th>
-                <th style="padding: 10px;">이름</th>
-                <th style="padding: 10px; text-align: center;">수량</th>
-                <th style="padding: 10px; text-align: right;">단가</th>
-                <th style="padding: 10px; text-align: right;">합계</th>
-            </tr>
-        </thead>
-        <tbody>
-    """
+    list_html = (
+        '<table style="width:100%; border-collapse: collapse; margin-bottom: 20px; font-size: 15px;">'
+        '<thead>'
+        '<tr style="border-bottom: 2px solid #333; text-align: left; background-color: #F3F4F6;">'
+        '<th style="padding: 10px; width: 80px;">이미지</th>'
+        '<th style="padding: 10px;">이름</th>'
+        '<th style="padding: 10px; text-align: center;">수량</th>'
+        '<th style="padding: 10px; text-align: right;">단가</th>'
+        '<th style="padding: 10px; text-align: right;">합계</th>'
+        '</tr>'
+        '</thead>'
+        '<tbody>'
+    )
     for name, item in st.session_state.cart.items():
         subtotal = item['price'] * item['qty']
-        list_html += f"""
-            <tr style="border-bottom: 1px solid #E5E7EB;">
-                <td style="padding: 8px;"><img src="{item['image']}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;"/></td>
-                <td style="padding: 8px; font-weight: bold;">{name}</td>
-                <td style="padding: 8px; text-align: center;">{item['qty']}개</td>
-                <td style="padding: 8px; text-align: right;">{item['price']:,}원</td>
-                <td style="padding: 8px; text-align: right; font-weight: bold;">{subtotal:,}원</td>
-            </tr>
-        """
-    list_html += "</tbody></table>"
+        list_html += (
+            f'<tr style="border-bottom: 1px solid #E5E7EB;">'
+            f'<td style="padding: 8px;"><img src="{item["image"]}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;"/></td>'
+            f'<td style="padding: 8px; font-weight: bold;">{name}</td>'
+            f'<td style="padding: 8px; text-align: center;">{item["qty"]}개</td>'
+            f'<td style="padding: 8px; text-align: right;">{item["price"]:,}원</td>'
+            f'<td style="padding: 8px; text-align: right; font-weight: bold;">{subtotal:,}원</td>'
+            f'</tr>'
+        )
+    list_html += '</tbody></table>'
     st.markdown(list_html, unsafe_allow_html=True)
 
     # 3. 금액 요약
