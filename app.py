@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import requests
 import streamlit as st
 import pandas as pd
@@ -66,6 +67,21 @@ def get_korean_font(size):
         return ImageFont.load_default()
 
 # -----------------------------------------------------------------------------
+# 이모지 제거 함수 (Pillow 이미지 생성 시 폰트 깨짐 방지용)
+# -----------------------------------------------------------------------------
+def remove_emojis(text):
+    emoji_pattern = re.compile(
+        "["
+        "\U00010000-\U0010FFFF"
+        "\u2600-\u27BF"
+        "\u2300-\u23FF"
+        "\u2B00-\u2BFF"
+        "]+",
+        flags=re.UNICODE
+    )
+    return emoji_pattern.sub(r'', text).strip()
+
+# -----------------------------------------------------------------------------
 # 결과 이미지 생성 함수 (Pillow)
 # -----------------------------------------------------------------------------
 def generate_result_image(mission, budget, cart, total_spent, balance, reason):
@@ -78,20 +94,25 @@ def generate_result_image(mission, budget, cart, total_spent, balance, reason):
     font_body = get_korean_font(14)
     font_bold = get_korean_font(15)
 
+    # 이모지 제거 처리된 제목
+    clean_mission = remove_emojis(mission)
+    clean_reason = remove_emojis(reason)
+
     # 외곽 테두리 및 헤더
     draw.rectangle([(10, 10), (width-10, height-10)], outline='#E0E0E0', width=3)
     draw.rectangle([(20, 20), (width-20, 85)], fill='#F0F4F8')
-    draw.text((width//2, 40), f"미션: {mission}", fill='#1E3A8A', font=font_title, anchor="mm")
+    draw.text((width//2, 40), f"미션: {clean_mission}", fill='#1E3A8A', font=font_title, anchor="mm")
     draw.text((width//2, 68), "초등 장보기 미션 결과표", fill='#6B7280', font=font_sub, anchor="mm")
     
     # 구매품목 목록 Header
-    draw.text((30, 105), "🛒 구매한 물건 목록", fill='#1F2937', font=font_bold)
+    draw.text((30, 105), "[구매한 물건 목록]", fill='#1F2937', font=font_bold)
     draw.line([(30, 128), (width-30, 128)], fill='#E5E7EB', width=1)
     
     y_offset = 140
     for name, item in cart.items():
+        clean_name = remove_emojis(name)
         item_total = item['price'] * item['qty']
-        text_line = f"• {name}  |  {item['price']:,}원 × {item['qty']}개"
+        text_line = f"• {clean_name}  |  {item['price']:,}원 × {item['qty']}개"
         draw.text((40, y_offset), text_line, fill='#374151', font=font_body)
         draw.text((width-40, y_offset), f"{item_total:,}원", fill='#1F2937', font=font_bold, anchor="ra")
         y_offset += 28
@@ -112,10 +133,10 @@ def generate_result_image(mission, budget, cart, total_spent, balance, reason):
     
     # 구매 이유 영역
     draw.rectangle([(30, 610), (width-30, 760)], fill='#FEF3C7', outline='#F59E0B')
-    draw.text((45, 625), "💬 내가 작성한 구매 이유", fill='#B45309', font=font_bold)
+    draw.text((45, 625), "[내가 작성한 구매 이유]", fill='#B45309', font=font_bold)
     
     lines = []
-    words = reason.split(' ')
+    words = clean_reason.split(' ')
     curr_line = ""
     for w in words:
         if len(curr_line + w) > 32:
@@ -172,7 +193,6 @@ elif st.session_state.page == 'shopping':
         img_url = row['이미지 url']
         
         with cols[idx % 3]:
-            # HTML 내부의 들여쓰기 공백으로 인한 마크다운 오작동 방지
             st.markdown(
                 f'<div style="border: 1px solid #E5E7EB; border-radius: 12px; padding: 12px; background-color: #FFFFFF; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center; height: 250px; justify-content: space-between; margin-bottom: 10px;">'
                 f'<img src="{img_url}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px;" loading="lazy" />'
@@ -211,7 +231,6 @@ elif st.session_state.page == 'shopping':
     if not st.session_state.cart:
         st.write("아직 장바구니에 담은 물건이 없습니다.")
     else:
-        # 공백 및 줄바꿈 문제 해결: 문자열을 결합하여 한 줄로 렌더링
         cart_html = '<div style="border: 1px solid #E5E7EB; border-radius: 8px; padding: 10px; background-color: #FAFAFA; margin-bottom: 15px;">'
         
         for name, item in st.session_state.cart.items():
