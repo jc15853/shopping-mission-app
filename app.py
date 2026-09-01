@@ -1,4 +1,6 @@
 import io
+import os
+import requests
 import streamlit as st
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
@@ -39,36 +41,59 @@ def load_products():
 
 df_products = load_products()
 
-# 결과 이미지 생성 함수 (다운로드용)
+# -----------------------------------------------------------------------------
+# 한글 폰트 자동 다운로드 함수 (리눅스/클라우드 깨짐 방지)
+# -----------------------------------------------------------------------------
+@st.cache_resource
+def get_korean_font(size):
+    font_filename = "NanumGothic.ttf"
+    font_url = "https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-Regular.ttf"
+    
+    if not os.path.exists(font_filename):
+        try:
+            res = requests.get(font_url)
+            with open(font_filename, "wb") as f:
+                f.write(res.content)
+        except Exception:
+            pass
+            
+    try:
+        return ImageFont.truetype(font_filename, size)
+    except Exception:
+        return ImageFont.load_default()
+
+# -----------------------------------------------------------------------------
+# 결과 이미지 생성 함수 (Pillow)
+# -----------------------------------------------------------------------------
 def generate_result_image(mission, budget, cart, total_spent, balance, reason):
     width, height = 600, 750
     img = Image.new('RGB', (width, height), color='#FFFFFF')
     draw = ImageDraw.Draw(img)
     
-    try:
-        font_title = ImageFont.truetype("malgun.ttf", 22)
-        font_sub = ImageFont.truetype("malgun.ttf", 14)
-        font_body = ImageFont.truetype("malgun.ttf", 15)
-        font_bold = ImageFont.truetype("malgunbd.ttf", 16)
-    except:
-        font_title = font_sub = font_body = font_bold = ImageFont.load_default()
+    font_title = get_korean_font(20)
+    font_sub = get_korean_font(13)
+    font_body = get_korean_font(14)
+    font_bold = get_korean_font(15)
 
+    # 테두리 및 헤더
     draw.rectangle([(10, 10), (width-10, height-10)], outline='#E0E0E0', width=3)
     draw.rectangle([(20, 20), (width-20, 80)], fill='#FFECEC')
     draw.text((width//2, 35), f"미션: {mission}", fill='#FF4B4B', font=font_title, anchor="mm")
     draw.text((width//2, 63), "초등 장보기 미션 결과표", fill='#777777', font=font_sub, anchor="mm")
     
+    # 물건 목록
     draw.text((30, 100), "🛒 구매한 물건 목록", fill='#2C3E50', font=font_bold)
     y_offset = 130
     for name, item in cart.items():
         item_total = item['price'] * item['qty']
-        text_line = f"• {name} ({item['price']:,}원 × {item['qty']}개)"
+        text_line = f"• {name} ({item['price']:,}원 x {item['qty']}개)"
         draw.text((40, y_offset), text_line, fill='#333333', font=font_body)
         draw.text((width-40, y_offset), f"{item_total:,}원", fill='#2C3E50', font=font_bold, anchor="ra")
         y_offset += 28
         if y_offset > 380:
             break
             
+    # 정산 박스
     draw.rectangle([(30, 420), (width-30, 550)], fill='#F8F9FA', outline='#DDDDDD')
     draw.text((50, 440), "총 예산:", fill='#333333', font=font_body)
     draw.text((width-50, 440), f"{budget:,}원", fill='#333333', font=font_bold, anchor="ra")
@@ -80,6 +105,7 @@ def generate_result_image(mission, budget, cart, total_spent, balance, reason):
     draw.text((50, 520), "남은 돈 (차액):", fill='#333333', font=font_body)
     draw.text((width-50, 520), f"{balance:,}원", fill='#27AE60', font=font_bold, anchor="ra")
     
+    # 이유 박스
     draw.rectangle([(30, 570), (width-30, 710)], fill='#FFF9DB', outline='#F1C40F')
     draw.text((45, 580), "💬 내가 작성한 구매 이유", fill='#D35400', font=font_bold)
     
@@ -87,7 +113,7 @@ def generate_result_image(mission, budget, cart, total_spent, balance, reason):
     words = reason.split(' ')
     curr_line = ""
     for w in words:
-        if len(curr_line + w) > 35:
+        if len(curr_line + w) > 30:
             lines.append(curr_line)
             curr_line = w + " "
         else:
@@ -198,7 +224,7 @@ elif st.session_state.page == 'shopping':
             st.rerun()
 
 # -----------------------------------------------------------------------------
-# 3. 결과 화면 (Streamlit 전용 UI 요소 활용)
+# 3. 결과 화면
 # -----------------------------------------------------------------------------
 elif st.session_state.page == 'result':
     st.title("🎉 장보기 미션 완료!")
@@ -217,7 +243,7 @@ elif st.session_state.page == 'result':
     st.session_state.purchase_reason = reason_input
     st.divider()
 
-    # 순수 Streamlit UI로 구성된 결과 리포트 카드 (코드 노출 무조건 방지)
+    # 화면 표시용 Streamlit 컨테이너
     with st.container(border=True):
         st.markdown(f"### 🎯 미션: {st.session_state.selected_mission}")
         st.divider()
