@@ -13,7 +13,7 @@ st.set_page_config(page_title="초등 장보기 미션 앱", page_icon="🛒", l
 # 1. 미션 및 어울리는 이모지 설정
 MISSIONS = {
     "🍛 카레 만들기": 15000,
-    "⛺ 여름캠핑 준비하기": 40000,
+    "⛺ 여름캠핑 준비하기": 35000,
     "🎉 친구 생일파티 준비하기": 25000
 }
 
@@ -172,7 +172,6 @@ elif st.session_state.page == 'shopping':
         img_url = row['이미지 url']
         
         with cols[idx % 3]:
-            # 고정 높이 카드 HTML/CSS 처리 (빠른 이미지 로딩 & 정렬)
             st.markdown(
                 f"""
                 <div style="
@@ -230,7 +229,6 @@ elif st.session_state.page == 'shopping':
     if not st.session_state.cart:
         st.write("아직 장바구니에 담은 물건이 없습니다.")
     else:
-        # 장바구니 리스트 (HTML 기반 이미지 포함 표시)
         cart_html = """
         <div style="border: 1px solid #E5E7EB; border-radius: 8px; padding: 10px; background-color: #FAFAFA; margin-bottom: 15px;">
         """
@@ -287,7 +285,7 @@ elif st.session_state.page == 'result':
     st.markdown(f"<h1 style='text-align: center; color: #1E3A8A;'>미션: {st.session_state.selected_mission}</h1>", unsafe_allow_html=True)
     st.write("")
     
-    # 2. 구매품목 목록 표시 (이미지/이름/수량/단가/합계)
+    # 2. 구매품목 목록 표시
     st.subheader("📦 구매품목")
     
     list_html = """
@@ -317,7 +315,7 @@ elif st.session_state.page == 'result':
     list_html += "</tbody></table>"
     st.markdown(list_html, unsafe_allow_html=True)
 
-    # 3. 금액 요약 (주어진 금액 / 총 사용 금액 / 잔액)
+    # 3. 금액 요약
     st.subheader("💰 금액 정산")
     c1, c2, c3 = st.columns(3)
     c1.metric("주어진 금액 (예산)", f"{st.session_state.budget:,}원")
