@@ -1,21 +1,18 @@
 import streamlit as st
 import pandas as pd
 import html
-from streamlit_html2canvas import html2canvas
 
 # -----------------------------------------------------------------------------
 # 0. 기본 설정 및 세션 상태(Session State) 초기화
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="초등 장보기 미션 앱", page_icon="🛒", layout="wide")
 
-# 미션 정보 정의 (미션명: 예산)
 MISSIONS = {
     "카레 만들기 🍛": 15000,
     "여름캠핑 준비하기 ⛺": 35000,
     "친구 생일파티 준비하기 🎂": 25000
 }
 
-# 세션 상태 관리
 if 'page' not in st.session_state:
     st.session_state.page = 'start'
 if 'selected_mission' not in st.session_state:
@@ -23,19 +20,16 @@ if 'selected_mission' not in st.session_state:
 if 'budget' not in st.session_state:
     st.session_state.budget = 0
 if 'cart' not in st.session_state:
-    st.session_state.cart = {}  # {상품명: {"price": 가격, "qty": 수량, "image": 이미지URL}}
+    st.session_state.cart = {}
 if 'purchase_reason' not in st.session_state:
     st.session_state.purchase_reason = ""
 
-# products.csv 불러오기 함수
 @st.cache_data
 def load_products():
     try:
-        # CSV 컬럼: 품명, 가격, 이미지 url
         df = pd.read_csv('products.csv')
         return df
-    except Exception as e:
-        # csv 파일이 없을 경우 테스트용 더미 데이터
+    except Exception:
         return pd.DataFrame({
             '품명': ['당근', '감자', '양파', '카레용 고기', '카레가루', '텐트', '음료수', '생일케이크'],
             '가격': [1000, 1500, 1200, 6000, 2500, 20000, 1500, 15000],
@@ -50,15 +44,9 @@ df_products = load_products()
 if st.session_state.page == 'start':
     st.title("🛒 초등 장보기 미션 앱")
     st.subheader("오늘의 미션을 선택하고 정해진 예산 안에서 장을 봐보세요!")
-    
     st.divider()
     
-    mission_choice = st.radio(
-        "도전할 미션을 선택하세요:",
-        options=list(MISSIONS.keys()),
-        index=0
-    )
-    
+    mission_choice = st.radio("도전할 미션을 선택하세요:", options=list(MISSIONS.keys()), index=0)
     selected_budget = MISSIONS[mission_choice]
     st.info(f"💡 **{mission_choice}** 의 주어진 예산은 **{selected_budget:,}원** 입니다.")
     
@@ -77,7 +65,6 @@ elif st.session_state.page == 'shopping':
     st.caption(f"주어진 예산: **{st.session_state.budget:,}원**")
     st.divider()
 
-    # 상품 진열장 (3열 레이아웃)
     cols = st.columns(3)
     for idx, row in df_products.iterrows():
         name = row['품명']
@@ -90,15 +77,7 @@ elif st.session_state.page == 'shopping':
                 st.subheader(name)
                 st.write(f"**가격:** {price:,}원")
                 
-                # 수량 조절 버튼
-                curr_qty = st.number_input(
-                    f"수량 ({name})", 
-                    min_value=0, 
-                    max_value=20, 
-                    value=0, 
-                    key=f"qty_{idx}", 
-                    label_visibility="collapsed"
-                )
+                curr_qty = st.number_input(f"수량 ({name})", min_value=0, max_value=20, value=0, key=f"qty_{idx}", label_visibility="collapsed")
                 
                 if st.button(f"장바구니 담기", key=f"add_{idx}"):
                     if curr_qty > 0:
@@ -110,8 +89,6 @@ elif st.session_state.page == 'shopping':
                             st.toast(f"'{name}'이(가) 장바구니에서 삭제되었습니다.")
 
     st.divider()
-    
-    # 하단 장바구니 영역
     st.header("🧺 내가 담은 장바구니")
     
     total_price = 0
@@ -130,7 +107,6 @@ elif st.session_state.page == 'shopping':
             })
         st.dataframe(pd.DataFrame(cart_data), use_container_width=True)
 
-    # 예산 계산 및 경고
     rem_budget = st.session_state.budget - total_price
     
     col_a, col_b, col_c = st.columns(3)
@@ -138,7 +114,6 @@ elif st.session_state.page == 'shopping':
     col_b.metric("현재 구매금액", f"{total_price:,}원")
     col_c.metric("남은 돈", f"{rem_budget:,}원", delta=rem_budget)
 
-    # 제출 제어 Logic
     is_over_budget = total_price > st.session_state.budget
     is_empty_cart = len(st.session_state.cart) == 0
 
@@ -152,13 +127,7 @@ elif st.session_state.page == 'shopping':
             st.rerun()
             
     with col_sub2:
-        # 예산 초과 시 버튼 비활성화
-        submit_btn = st.button(
-            "제출하기 📝", 
-            type="primary", 
-            disabled=(is_over_budget or is_empty_cart), 
-            use_container_width=True
-        )
+        submit_btn = st.button("제출하기 📝", type="primary", disabled=(is_over_budget or is_empty_cart), use_container_width=True)
         if submit_btn:
             st.session_state.page = 'result'
             st.rerun()
@@ -173,23 +142,16 @@ elif st.session_state.page == 'result':
     total_spent = sum(item['price'] * item['qty'] for item in st.session_state.cart.values())
     balance = st.session_state.budget - total_spent
 
-    # 구매 이유 입력창
     st.subheader("💡 구매 이유 작성하기")
     reason_input = st.text_area(
-        "이 물건들을 선택한 이유를 작성해 주세요! (예: 카레를 만들기 위해 필수 재료인 양파와 고기를 구매했습니다.)",
+        "이 물건들을 선택한 이유를 작성해 주세요!",
         value=st.session_state.purchase_reason,
         placeholder="이유를 입력해 주세요...",
         height=100
     )
     st.session_state.purchase_reason = reason_input
-
     st.divider()
 
-    # -------------------------------------------------------------------------
-    # 결과 리포트 (HTML/CSS 렌더링 -> 이미지 다운로드용)
-    # 글자/이미지 깨짐 방지를 위해 HTML 템플릿 형태로 인라인 렌더링
-    # -------------------------------------------------------------------------
-    
     cart_items_html = ""
     for name, item in st.session_state.cart.items():
         item_total = item['price'] * item['qty']
@@ -208,8 +170,9 @@ elif st.session_state.page == 'result':
 
     safe_reason = html.escape(reason_input) if reason_input else "작성된 이유가 없습니다."
 
-    # Canvas로 캡처될 결과 카드 영문/한글 깨짐 방지 폰트 및 웹스타일 포함 HTML
+    # CDN 방식으로 html2canvas 라이브러리를 직접 로드하여 렌더링
     result_card_html = f"""
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.min.js"></script>
     <div id="capture-card" style="
         width: 550px; 
         padding: 25px; 
@@ -249,21 +212,39 @@ elif st.session_state.page == 'result':
     </div>
     """
 
-    # 화면에 웹 폼 형태로 보여주기
     st.markdown(result_card_html, unsafe_allow_html=True)
     st.write("")
 
-    # 이유 작성이 완료되었을 때만 이미지 다운로드(Canvas) 버튼 활성화
     if reason_input.strip():
         st.subheader("🖼️ 그림으로 저장하기")
-        st.caption("아래 '그림으로 저장' 버튼을 누른 뒤 생성된 이미지를 다운로드하세요.")
+        st.caption("아래 '이미지 다운로드' 버튼을 누르면 인쇄용 이미지 파일이 저장됩니다.")
         
-        # html2canvas를 활용해 깨짐 없는 PNG 화질 생성
-        html2canvas(
-            result_card_html, 
-            canvas_id="capture-card", 
-            button_label="그림으로 저장하기 📸"
-        )
+        # 순수 JS를 통한 클라이언트 단 안전 이미지 저장 스크립트
+        download_js = """
+        <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+        <button onclick="downloadImage()" style="
+            background-color: #FF4B4B;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        ">📸 그림으로 저장하기</button>
+        <script>
+        function downloadImage() {
+            var card = document.getElementById('capture-card');
+            html2canvas(card, {useCORS: true}).then(function(canvas) {
+                var link = document.createElement('a');
+                link.download = '장보기_미션_결과.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+        </script>
+        """
+        st.components.v1.html(download_js, height=60)
     else:
         st.warning("⚠️ '구매 이유'를 작성하면 [그림으로 저장] 버튼이 생성됩니다.")
 
